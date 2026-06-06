@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MyApp — Habit Tracker Code Guide</title>
+<style>
+  :root { --primary: #4F46E5; --bg: #f8f9fc; --card: #fff; --text: #1A1A2E; --muted: #6b7280; --border: #e5e7f0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.75; color: var(--text); background: var(--bg); }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 48px 40px; }
+
+  /* Cover */
+  .cover { background: var(--primary); color: #fff; border-radius: 16px; padding: 56px 48px; margin-bottom: 48px; }
+  .cover h1 { font-size: 36px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .cover .sub { font-size: 16px; opacity: 0.85; margin-bottom: 24px; }
+  .cover .badge { display: inline-block; background: rgba(255,255,255,0.18); border-radius: 20px; padding: 4px 14px; font-size: 12px; margin-right: 8px; }
+
+  /* TOC */
+  .toc { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 28px 32px; margin-bottom: 48px; }
+  .toc h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 1px; color: var(--primary); margin-bottom: 16px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 6px 0; font-size: 13px; color: var(--muted); }
+  .toc a { color: var(--primary); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Sections */
+  section { margin-bottom: 56px; }
+  h2.section-title { font-size: 22px; font-weight: 700; color: var(--primary); border-bottom: 3px solid var(--primary); padding-bottom: 10px; margin-bottom: 24px; }
+  h3 { font-size: 16px; font-weight: 700; color: var(--text); margin: 28px 0 12px; border-left: 4px solid var(--primary); padding-left: 12px; }
+  h4 { font-size: 14px; font-weight: 600; color: var(--muted); margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  p { margin: 10px 0; color: #374151; }
+
+  /* Code */
+  pre { background: #1e1e2e; color: #cdd6f4; padding: 20px 24px; border-radius: 12px; overflow-x: auto; margin: 16px 0; font-size: 12.5px; line-height: 1.65; }
+  code { font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace; }
+  pre code { color: inherit; }
+  p code, li code { background: #ede9fe; color: var(--primary); padding: 2px 7px; border-radius: 5px; font-size: 12px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th { background: var(--primary); color: #fff; padding: 10px 14px; text-align: left; font-weight: 600; }
+  th:first-child { border-radius: 8px 0 0 0; } th:last-child { border-radius: 0 8px 0 0; }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f8f8ff; }
+
+  /* Callout */
+  .note { background: #f0efff; border-left: 4px solid var(--primary); border-radius: 0 10px 10px 0; padding: 12px 18px; margin: 16px 0; font-size: 13px; color: #374151; }
+  .note strong { color: var(--primary); }
+
+  /* File header chip */
+  .file-chip { display: inline-block; background: var(--primary); color: #fff; border-radius: 6px 6px 0 0; padding: 4px 14px; font-size: 12px; font-family: 'Courier New', monospace; margin-bottom: -2px; }
+
+  /* Print */
+  @media print {
+    body { background: #fff; font-size: 12px; }
+    .wrap { padding: 0; max-width: 100%; }
+    .cover { border-radius: 0; margin: 0 0 32px; }
+    pre { page-break-inside: avoid; font-size: 10.5px; }
+    section { page-break-inside: avoid; }
+    h2.section-title { page-break-before: always; }
+    h2.section-title:first-of-type { page-break-before: avoid; }
+    .toc { page-break-after: always; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Cover -->
+  <div class="cover">
+    <h1>MyApp — Habit Tracker</h1>
+    <p class="sub">Complete Code Guide · Step by Step</p>
+    <span class="badge">React Native</span>
+    <span class="badge">Expo 54</span>
+    <span class="badge">Expo Router 6</span>
+    <span class="badge">TypeScript 5</span>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#s1">Project Overview</a></li>
+      <li><a href="#s2">Project Structure</a></li>
+      <li><a href="#s3">Configuration Files</a> — package.json · app.json · tsconfig.json</li>
+      <li><a href="#s4">App Entry — _layout.tsx</a></li>
+      <li><a href="#s5">Home Screen — index.tsx</a>
+        <ol style="margin-top:4px">
+          <li>Imports</li>
+          <li>Type Definition</li>
+          <li>Seed Data</li>
+          <li>State &amp; Derived Values</li>
+          <li>Event Handlers</li>
+          <li>JSX Structure</li>
+          <li>StyleSheet</li>
+        </ol>
+      </li>
+      <li><a href="#s6">Constants — Colors.ts</a></li>
+      <li><a href="#s7">Hooks — useColorScheme.ts</a></li>
+      <li><a href="#s8">Scripts — reset-project.js</a></li>
+      <li><a href="#s9">How to Run</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 -->
+  <section id="s1">
+    <h2 class="section-title">1. Project Overview</h2>
+    <p>MyApp is a <strong>daily habit tracker</strong> built with React Native and Expo. Users can:</p>
+    <ul style="margin:12px 0 12px 20px; line-height:2">
+      <li>View today's habits in a scrollable card list</li>
+      <li>Check off habits and see a live progress bar</li>
+      <li>Track per-habit streaks (days in a row completed)</li>
+      <li>Add new habits via a bottom-sheet modal</li>
+      <li>Delete habits with a long-press confirmation</li>
+    </ul>
+    <p>The app uses <strong>Expo Router</strong> for file-based navigation and all state is managed locally with React's <code>useState</code> hook — no external state library is needed.</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <h2 class="section-title">2. Project Structure</h2>
+    <pre><code>MyApp/
+├── app/                    ← Screens (Expo Router file-based routing)
+│   ├── _layout.tsx         ← Root navigator configuration
+│   └── index.tsx           ← Home screen (the habit tracker)
+├── assets/                 ← App icons, splash screen images
+├── components/             ← Shared UI components (empty, ready to use)
+├── constants/
+│   └── Colors.ts           ← Light/dark colour tokens
+├── hooks/
+│   └── useColorScheme.ts   ← Re-exports React Native's useColorScheme
+├── scripts/
+│   └── reset-project.js    ← Dev utility: wipes app/ back to blank state
+├── .vscode/
+│   └── settings.json       ← Format-on-save, TypeScript SDK path
+├── app.json                ← Expo project configuration
+├── eslint.config.js        ← ESLint flat-config
+├── package.json            ← Dependencies and npm scripts
+└── tsconfig.json           ← TypeScript compiler options</code></pre>
+
+    <table>
+      <tr><th>Folder</th><th>Purpose</th></tr>
+      <tr><td><code>app/</code></td><td>Every <code>.tsx</code> file here becomes a route automatically (Expo Router)</td></tr>
+      <tr><td><code>components/</code></td><td>Reusable UI pieces shared across multiple screens</td></tr>
+      <tr><td><code>constants/</code></td><td>Values used app-wide (colours, sizes, API URLs)</td></tr>
+      <tr><td><code>hooks/</code></td><td>Custom React hooks that encapsulate reusable logic</td></tr>
+      <tr><td><code>scripts/</code></td><td>Node.js utility scripts run manually during development</td></tr>
+    </table>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <h2 class="section-title">3. Configuration Files</h2>
+
+    <h3>package.json</h3>
+    <pre><code>{
+  "name": "myapp",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start":   "expo start",
+    "android": "expo start --android",
+    "ios":     "expo start --ios",
+    "web":     "expo start --web"
+  },
+  "dependencies": {
+    "expo":                          "~54.0.33",
+    "expo-router":                   "~6.0.23",
+    "expo-status-bar":               "~3.0.9",
+    "react":                         "19.1.0",
+    "react-native":                  "0.81.5",
+    "react-native-safe-area-context":"~5.6.0",
+    "react-native-screens":          "~4.16.0"
+  }
+}</code></pre>
+
+    <h4>Key: <code>"main": "expo-router/entry"</code></h4>
+    <p>Instead of pointing to your own <code>index.ts</code>, this hands control to Expo Router's entry point. Expo Router then reads the <code>app/</code> directory and automatically creates a navigator from the file structure — no manual route registration needed.</p>
+
+    <table>
+      <tr><th>Package</th><th>Why it's needed</th></tr>
+      <tr><td><code>expo</code></td><td>Core Expo SDK — device APIs and build tools</td></tr>
+      <tr><td><code>expo-router</code></td><td>File-based navigation, like Next.js App Router</td></tr>
+      <tr><td><code>expo-status-bar</code></td><td>Cross-platform control of the iOS/Android status bar</td></tr>
+      <tr><td><code>react-native-safe-area-context</code></td><td>Padding for notches and home indicators</td></tr>
+      <tr><td><code>react-native-screens</code></td><td>Native screen containers for better performance</td></tr>
+    </table>
+
+    <h3>app.json</h3>
+    <pre><code>{
+  "expo": {
+    "name": "MyApp",
+    "slug": "MyApp",
+    "scheme": "myapp",
+    "version": "1.0.0",
+    "newArchEnabled": true,
+    "web": { "bundler": "metro" },
+    "plugins": ["expo-router"]
+  }
+}</code></pre>
+
+    <table>
+      <tr><th>Field</th><th>Explanation</th></tr>
+      <tr><td><code>"scheme": "myapp"</code></td><td>Deep-link URL scheme (e.g. <code>myapp://home</code>). Required by Expo Router for in-app navigation links.</td></tr>
+      <tr><td><code>"newArchEnabled": true</code></td><td>Opts into React Native's New Architecture (Fabric + JSI) for better performance.</td></tr>
+      <tr><td><code>"web": {"bundler":"metro"}</code></td><td>Uses Metro instead of webpack to bundle the web version. Required by Expo Router.</td></tr>
+      <tr><td><code>"plugins": ["expo-router"]</code></td><td>Applies Expo Router's native config (registers deep-link scheme) at build time.</td></tr>
+    </table>
+
+    <h3>tsconfig.json</h3>
+    <pre><code>{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": { "@/*": ["./*"] }
+  }
+}</code></pre>
+
+    <table>
+      <tr><th>Setting</th><th>Effect</th></tr>
+      <tr><td><code>"extends": "expo/tsconfig.base"</code></td><td>Inherits Expo's recommended TS settings (JSX mode, module resolution, etc.)</td></tr>
+      <tr><td><code>"strict": true</code></td><td>Enables all strict checks — catches bugs at compile time, not at runtime</td></tr>
+      <tr><td><code>"paths": {"@/*": ["./*"]}</code></td><td>Import alias: <code>@/constants/Colors</code> instead of <code>../../constants/Colors</code></td></tr>
+    </table>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <h2 class="section-title">4. App Entry — _layout.tsx</h2>
+    <pre><code>import { Stack } from 'expo-router';
+
+export default function RootLayout() {
+  return (
+    &lt;Stack&gt;
+      &lt;Stack.Screen name="index" options={{ headerShown: false }} /&gt;
+    &lt;/Stack&gt;
+  );
+}</code></pre>
+
+    <h3>How Expo Router works</h3>
+    <p>Every file inside <code>app/</code> becomes a screen. The special file <code>_layout.tsx</code> defines the <strong>navigator</strong> that wraps those screens — think of it as the picture frame around the pictures.</p>
+
+    <table>
+      <tr><th>Line</th><th>What it does</th></tr>
+      <tr><td><code>import { Stack }</code></td><td>A Stack navigator — screens slide in from the right (iOS) or animate up (Android)</td></tr>
+      <tr><td><code>export default function RootLayout</code></td><td>Must be the default export — Expo Router calls this automatically</td></tr>
+      <tr><td><code>&lt;Stack&gt;</code></td><td>The stack container. Unlisted screens get default header styles</td></tr>
+      <tr><td><code>headerShown: false</code></td><td>Hides the default navigation bar — we draw a custom header inside <code>index.tsx</code></td></tr>
+    </table>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <h2 class="section-title">5. Home Screen — index.tsx</h2>
+    <p>The main screen — all habit tracker logic and UI lives here. We'll break it down section by section.</p>
+
+    <h3>5.1 Imports</h3>
+    <pre><code>import { useState } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView,
+  TouchableOpacity, TextInput, Modal, Alert, Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';</code></pre>
+
+    <table>
+      <tr><th>Import</th><th>Purpose</th></tr>
+      <tr><td><code>useState</code></td><td>React hook for local state (habits list, modal, input text)</td></tr>
+      <tr><td><code>View</code></td><td>The fundamental layout box — like <code>&lt;div&gt;</code> in HTML</td></tr>
+      <tr><td><code>Text</code></td><td>Renders text — all text must be inside this in React Native</td></tr>
+      <tr><td><code>StyleSheet</code></td><td>Optimised style definitions (validated at load time, not render time)</td></tr>
+      <tr><td><code>ScrollView</code></td><td>A scrollable container for the habit list</td></tr>
+      <tr><td><code>TouchableOpacity</code></td><td>A pressable wrapper that fades on press</td></tr>
+      <tr><td><code>TextInput</code></td><td>Text input for typing a new habit name</td></tr>
+      <tr><td><code>Modal</code></td><td>Renders content on top of everything else (the add-habit sheet)</td></tr>
+      <tr><td><code>Alert</code></td><td>Native OS alert dialog for delete confirmation</td></tr>
+      <tr><td><code>Platform</code></td><td>Detects iOS vs Android to apply platform-specific shadow styles</td></tr>
+      <tr><td><code>SafeAreaView</code></td><td>Auto-adds padding for notches and home indicators</td></tr>
+      <tr><td><code>StatusBar</code></td><td>Controls whether the status bar text is light or dark</td></tr>
+    </table>
+
+    <h3>5.2 Type Definition</h3>
+    <pre><code>type Habit = {
+  id: string;
+  name: string;
+  completed: boolean;
+  streak: number;
+};</code></pre>
+    <p>This TypeScript <code>type</code> describes the shape of a single habit. Every habit in the app must have exactly these four fields. TypeScript will show an error at compile time if any code tries to create a habit with missing or wrong-typed fields.</p>
+
+    <h3>5.3 Seed Data</h3>
+    <pre><code>const INITIAL_HABITS: Habit[] = [
+  { id: '1', name: 'Morning workout',          completed: false, streak: 7  },
+  { id: '2', name: 'Read for 30 minutes',      completed: false, streak: 3  },
+  { id: '3', name: 'Drink 8 glasses of water', completed: true,  streak: 12 },
+  { id: '4', name: 'Meditate',                 completed: false, streak: 5  },
+];</code></pre>
+    <p>Four pre-seeded habits so the screen isn't empty on first launch. This is a module-level constant (outside the component function) so it is created once when the module loads, not on every render. <code>UPPER_SNAKE_CASE</code> is the convention for constants that never change.</p>
+
+    <h3>5.4 State &amp; Derived Values</h3>
+    <pre><code>const [habits,       setHabits]       = useState&lt;Habit[]&gt;(INITIAL_HABITS);
+const [modalVisible, setModalVisible] = useState(false);
+const [newHabitName, setNewHabitName] = useState('');
+
+const today = new Date().toLocaleDateString('en-US', {
+  weekday: 'long', month: 'long', day: 'numeric',
+});
+
+const completedCount = habits.filter((h) =&gt; h.completed).length;
+const progress = habits.length &gt; 0 ? completedCount / habits.length : 0;</code></pre>
+
+    <table>
+      <tr><th>Variable</th><th>Initial</th><th>Controls</th></tr>
+      <tr><td><code>habits</code></td><td><code>INITIAL_HABITS</code></td><td>The full list — the source of truth</td></tr>
+      <tr><td><code>modalVisible</code></td><td><code>false</code></td><td>Whether the add-habit bottom sheet is open</td></tr>
+      <tr><td><code>newHabitName</code></td><td><code>''</code></td><td>Text being typed into the new-habit input</td></tr>
+    </table>
+
+    <div class="note"><strong>Derived values:</strong> <code>completedCount</code> and <code>progress</code> are NOT stored in state — they are recalculated from <code>habits</code> on every render. Storing computed values separately creates a risk of them going out of sync with the real data.</div>
+
+    <h3>5.5 Event Handlers</h3>
+
+    <h4>toggleHabit — called on tap</h4>
+    <pre><code>function toggleHabit(id: string) {
+  setHabits((prev) =&gt;
+    prev.map((h) =&gt; {
+      if (h.id !== id) return h;
+      const completing = !h.completed;
+      return {
+        ...h,
+        completed: completing,
+        streak: completing ? h.streak + 1 : Math.max(0, h.streak - 1),
+      };
+    })
+  );
+}</code></pre>
+    <ul style="margin:10px 0 10px 20px; line-height:2; font-size:13px; color:#374151">
+      <li><code>prev.map(...)</code> creates a <strong>new array</strong> — we never mutate state directly in React</li>
+      <li><code>if (h.id !== id) return h</code> — all other habits pass through unchanged</li>
+      <li><code>...h</code> spreads existing fields, then we override only <code>completed</code> and <code>streak</code></li>
+      <li><code>Math.max(0, h.streak - 1)</code> — streak never goes below zero</li>
+      <li>The functional form <code>setHabits((prev) =&gt; ...)</code> avoids stale closure bugs</li>
+    </ul>
+
+    <h4>addHabit — called on modal confirm</h4>
+    <pre><code>function addHabit() {
+  const name = newHabitName.trim();
+  if (!name) return;
+  setHabits((prev) =&gt; [
+    ...prev,
+    { id: Date.now().toString(), name, completed: false, streak: 0 },
+  ]);
+  setNewHabitName('');
+  setModalVisible(false);
+}</code></pre>
+    <ul style="margin:10px 0 10px 20px; line-height:2; font-size:13px; color:#374151">
+      <li><code>.trim()</code> removes accidental whitespace</li>
+      <li><code>if (!name) return</code> guards against empty submissions</li>
+      <li><code>Date.now().toString()</code> generates a unique ID from the current timestamp in ms</li>
+      <li><code>[...prev, newHabit]</code> appends without mutating the existing array</li>
+    </ul>
+
+    <h4>deleteHabit — called on long-press</h4>
+    <pre><code>function deleteHabit(id: string) {
+  Alert.alert('Delete Habit', 'Remove this habit?', [
+    { text: 'Cancel', style: 'cancel' },
+    {
+      text: 'Delete',
+      style: 'destructive',
+      onPress: () =&gt; setHabits((prev) =&gt; prev.filter((h) =&gt; h.id !== id)),
+    },
+  ]);
+}</code></pre>
+    <ul style="margin:10px 0 10px 20px; line-height:2; font-size:13px; color:#374151">
+      <li><code>Alert.alert</code> renders a native OS dialog on both iOS and Android</li>
+      <li><code>style: 'destructive'</code> renders the Delete button in red on iOS</li>
+      <li><code>prev.filter((h) =&gt; h.id !== id)</code> returns a new array with the target removed</li>
+    </ul>
+
+    <h3>5.6 JSX Structure</h3>
+    <pre><code>SafeAreaView          ← full screen, avoids notch/home bar
+├── StatusBar         ← dark text in system status bar
+├── View [header]
+│   ├── Text          ← date string (e.g. "Monday, May 19")
+│   ├── Text          ← "My Habits" title
+│   ├── View          ← "X/Y done" + percentage row
+│   └── View          ← progress bar (flex-ratio technique)
+├── ScrollView        ← scrollable habit list
+│   ├── empty message (shown only if habits.length === 0)
+│   ├── TouchableOpacity [card] × N
+│   │   ├── View [checkbox]  ← shows ✓ when completed
+│   │   └── View [cardBody]
+│   │       ├── Text ← habit name
+│   │       └── Text ← "🔥 N day streak"
+│   └── Text          ← long-press hint
+├── TouchableOpacity [FAB]  ← "+" button, absolutely positioned
+└── Modal             ← add-habit bottom sheet
+    └── View [overlay]
+        └── View [modal panel]
+            ├── Text        ← "New Habit" title
+            ├── TextInput   ← habit name input
+            └── View        ← Cancel + Add buttons</code></pre>
+
+    <div class="note"><strong>Progress bar technique:</strong> Uses flex ratios instead of percentage widths. If 3 of 5 habits are done, the fill gets <code>flex: 3</code> and the empty part gets <code>flex: 2</code>. React Native distributes the total width proportionally.</div>
+
+    <h3>5.7 StyleSheet</h3>
+    <pre><code>const PRIMARY = '#4F46E5';  // Indigo-600
+const BG      = '#F4F4F8';  // Near-white with a slight blue tint
+
+const styles = StyleSheet.create({ ... });</code></pre>
+    <p>Two module-level colour constants drive the whole theme. Changing <code>PRIMARY</code> updates every button, checkbox, progress bar, and accent app-wide.</p>
+
+    <table>
+      <tr><th>Why <code>StyleSheet.create()</code>?</th><th></th></tr>
+      <tr><td>Validates properties at load time</td><td>Typos like <code>backgrondColor</code> throw immediately</td></tr>
+      <tr><td>Sends styles to native layer once</td><td>References them by ID on every render — faster than re-serialising objects</td></tr>
+    </table>
+
+    <h4>Cross-platform shadows</h4>
+    <pre><code>...Platform.select({
+  ios:     { shadowColor: '#000', shadowOpacity: 0.06,
+             shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+  android: { elevation: 4 },
+}),</code></pre>
+    <p>iOS and Android use completely different shadow APIs. <code>Platform.select</code> returns the right object at runtime and the spread merges it into the style. On the web, both are ignored gracefully.</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="s6">
+    <h2 class="section-title">6. Constants — Colors.ts</h2>
+    <pre><code>const tintColorLight = '#0a7ea4';
+const tintColorDark  = '#fff';
+
+export const Colors = {
+  light: {
+    text:           '#11181C',
+    background:     '#fff',
+    tint:           tintColorLight,
+    icon:           '#687076',
+    tabIconDefault: '#687076',
+    tabIconSelected: tintColorLight,
+  },
+  dark: {
+    text:           '#ECEDEE',
+    background:     '#151718',
+    tint:           tintColorDark,
+    icon:           '#9BA1A6',
+    tabIconDefault: '#9BA1A6',
+    tabIconSelected: tintColorDark,
+  },
+};</code></pre>
+
+    <p>A centralised colour palette for both light and dark themes. Defining colours here means you can change a value app-wide by editing one line, and easily support dark mode by switching between <code>Colors.light</code> and <code>Colors.dark</code>.</p>
+
+    <h3>Usage pattern</h3>
+    <pre><code>import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
+
+const scheme = useColorScheme();          // 'light' | 'dark' | null
+const colors = Colors[scheme ?? 'light']; // pick the right palette
+
+// Use: colors.text, colors.background, colors.tint …</code></pre>
+  </section>
+
+  <!-- 7 -->
+  <section id="s7">
+    <h2 class="section-title">7. Hooks — useColorScheme.ts</h2>
+    <pre><code>export { useColorScheme } from 'react-native';</code></pre>
+
+    <p>This one line re-exports React Native's built-in <code>useColorScheme</code> hook unchanged. The reason it exists as its own file is <strong>extensibility</strong>: if you later want to let users manually override the system theme, you only change this one file. Every component that imports from <code>@/hooks/useColorScheme</code> automatically gets the new behaviour — no component changes needed.</p>
+
+    <p><code>useColorScheme</code> returns <code>'light'</code>, <code>'dark'</code>, or <code>null</code> and re-renders any component that uses it whenever the system appearance changes.</p>
+  </section>
+
+  <!-- 8 -->
+  <section id="s8">
+    <h2 class="section-title">8. Scripts — reset-project.js</h2>
+    <pre><code>const fs   = require('fs');
+const path = require('path');
+
+const appDir     = path.join(__dirname, '..', 'app');
+const indexFile  = path.join(appDir, 'index.tsx');
+const layoutFile = path.join(appDir, '_layout.tsx');
+
+// Delete every file in app/
+fs.readdirSync(appDir).forEach((file) =&gt; {
+  fs.rmSync(path.join(appDir, file), { recursive: true, force: true });
+});
+
+// Re-write blank index and layout
+fs.writeFileSync(indexFile,  indexContent);
+fs.writeFileSync(layoutFile, layoutContent);
+
+console.log('Project reset to blank state.');</code></pre>
+
+    <p>A developer utility that wipes the <code>app/</code> directory back to a minimal blank state. Never shipped to users — run manually when starting fresh.</p>
+
+    <h3>Run it</h3>
+    <pre><code>node scripts/reset-project.js</code></pre>
+
+    <table>
+      <tr><th>API</th><th>What it does</th></tr>
+      <tr><td><code>path.join(__dirname, '..', 'app')</code></td><td>Resolves <code>app/</code> relative to the script's own folder — works regardless of where you run the command from</td></tr>
+      <tr><td><code>fs.readdirSync(appDir)</code></td><td>Lists all files/folders in <code>app/</code> synchronously</td></tr>
+      <tr><td><code>fs.rmSync(..., { recursive: true, force: true })</code></td><td>Deletes a file or folder including its contents; <code>force</code> suppresses errors if missing</td></tr>
+      <tr><td><code>fs.writeFileSync(file, content)</code></td><td>Writes a string to a file, creating it if it doesn't exist</td></tr>
+    </table>
+  </section>
+
+  <!-- 9 -->
+  <section id="s9">
+    <h2 class="section-title">9. How to Run</h2>
+
+    <h3>Start the development server</h3>
+    <pre><code>cd "Example Project/MyApp"
+npx expo start</code></pre>
+
+    <h3>Test on your phone</h3>
+    <ol style="margin:12px 0 12px 20px; line-height:2.2; font-size:13px; color:#374151">
+      <li>Install <strong>Expo Go</strong> from the App Store (iOS) or Play Store (Android)</li>
+      <li>Ensure your phone and computer are on the <strong>same Wi-Fi network</strong></li>
+      <li>Scan the QR code — with the Camera app on iOS, or the Expo Go scanner on Android</li>
+    </ol>
+
+    <h3>Key shortcuts in the Expo dev server</h3>
+    <table>
+      <tr><th>Key</th><th>Action</th></tr>
+      <tr><td><code>a</code></td><td>Open Android emulator</td></tr>
+      <tr><td><code>w</code></td><td>Open in web browser</td></tr>
+      <tr><td><code>r</code></td><td>Reload the app</td></tr>
+      <tr><td><code>j</code></td><td>Open JavaScript debugger</td></tr>
+      <tr><td><code>Ctrl + C</code></td><td>Stop the server</td></tr>
+    </table>
+
+    <h3>Build for production (EAS)</h3>
+    <pre><code>npm install -g eas-cli   # Install EAS build tool
+eas login                # Log in to your Expo account
+eas build:configure      # Set up build profiles
+
+eas build --platform android   # Build Android APK / AAB
+eas build --platform ios       # Build iOS IPA (needs Apple Developer account)</code></pre>
+  </section>
+
+  <div style="text-align:center; padding:32px 0; color:var(--muted); font-size:12px; border-top:1px solid var(--border); margin-top:32px">
+    MyApp Habit Tracker · Code Guide · Generated May 2026
+  </div>
+
+</div>
+</body>
+</html>
