@@ -76,6 +76,20 @@ type ActiveChallenge = {
 
 `constants/theme.ts` exports: `HABIT_COLORS` (8 swatches), `HABIT_EMOJIS` (18 options), `PRESET_CHALLENGES` (3-day, 7-day, 30-day).
 
+### Supabase + auth
+
+**Credentials**: stored in `.env` (gitignored). Copy `.env.example` → `.env` and fill in `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`. Expo picks up `EXPO_PUBLIC_*` vars at build time.
+
+**Database schema**: `supabase/schema.sql` — run once in Supabase SQL Editor. Three tables: `habits`, `challenges`, `user_state`, all with RLS policies scoped to `auth.uid()`.
+
+**Auth flow** (`hooks/useAuth.ts` + `app/auth.tsx`): email/password via `@supabase/supabase-js`. Session persisted in `expo-secure-store` (native) or AsyncStorage (web) via a custom storage adapter in `lib/supabase.ts`. `_layout.tsx` routes: no session → `/auth`, session + not onboarded → `/onboarding`, otherwise → `/(tabs)`.
+
+**Sync strategy** (`lib/db.ts` + `hooks/useStore.ts`):
+- **Cache-first reads**: AsyncStorage loads instantly on open → Supabase syncs in background → state updates silently (`syncing` flag exposed from `useStore`).
+- **Optimistic writes**: every action (addHabit, incrementHabit, etc.) writes to AsyncStorage + local state immediately, then fires a background upsert to Supabase. Failures are silently swallowed — next sync recovers.
+- **Auth events**: `SIGNED_IN` triggers a full pull from Supabase into cache; `SIGNED_OUT` clears both.
+- Supabase is source of truth; local cache is a speed layer.
+
 ### Claude Code plugin
 
 `.claude/settings.json` enables the official Expo plugin (`expo@claude-plugins-official`).

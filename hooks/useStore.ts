@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
+import { fetchRemoteStore, upsertHabit, removeHabit, upsertChallenge, upsertUserState } from '../lib/db';
 
 export type HabitType = 'daily' | 'volume';
 
@@ -38,6 +40,7 @@ type Store = {
 
 type StoreCtx = Store & {
   loading: boolean;
+  syncing: boolean;
   addHabit: (h: Omit<Habit, 'id' | 'completedCount' | 'streak' | 'createdAt'>) => void;
   deleteHabit: (id: string) => void;
   incrementHabit: (id: string) => 'incremented' | 'completed' | 'already_done';
@@ -56,85 +59,148 @@ function defaultStore(): Store {
   return { habits: [], challenges: [], hasOnboarded: false, lastResetDate: todayStr() };
 }
 
+function applyDailyReset(saved: Store): Store {
+  const today = todayStr();
+  if (saved.lastResetDate === today) return saved;
+
+  const yesterday = saved.lastResetDate;
+  const updatedChallenges = saved.challenges.map((c) => {
+    if (c.completedAt) return c;
+    if (c.lastCheckedDate === yesterday) return c;
+    const allDone = saved.habits.every((h) => h.completedCount >= h.targetCount);
+    const newDays = allDone ? c.daysCompleted + 1 : c.daysCompleted;
+    const completed = newDays >= c.durationDays ? Date.now() : undefined;
+    return { ...c, daysCompleted: newDays, completedAt: completed, lastCheckedDate: yesterday };
+  });
+  const updatedHabits = saved.habits.map((h) => ({
+    ...h,
+    streak: h.completedCount >= h.targetCount ? h.streak : 0,
+    completedCount: 0,
+  }));
+  return { ...saved, habits: updatedHabits, challenges: updatedChallenges, lastResetDate: today };
+}
+
 const Ctx = createContext<StoreCtx>(null!);
 
 export function StoreProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
   const [store, setStore] = useState<Store>(defaultStore());
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const saveRef = useRef(false);
 
+  // Phase 1: load cache immediately; Phase 2: sync from Supabase in background
   useEffect(() => {
-    AsyncStorage.getItem(KEY).then((raw) => {
+    const init = async () => {
+      // ── Phase 1: cache (instant) ────────────────────────────────────────
+      const raw = await AsyncStorage.getItem(KEY);
       if (raw) {
         try {
-          const saved: Store = JSON.parse(raw);
-          const today = todayStr();
-          // Daily reset logic
-          if (saved.lastResetDate !== today) {
-            const yesterday = saved.lastResetDate;
-            // Update challenge progress before resetting habits
-            const updatedChallenges = saved.challenges.map((c) => {
-              if (c.completedAt) return c;
-              if (c.lastCheckedDate === yesterday) return c; // already counted yesterday
-              // Check if all associated habits were completed yesterday
-              const allDone = saved.habits.every((h) => h.completedCount >= h.targetCount);
-              const newDays = allDone ? c.daysCompleted + 1 : c.daysCompleted;
-              const completed = newDays >= c.durationDays ? Date.now() : undefined;
-              return { ...c, daysCompleted: newDays, completedAt: completed, lastCheckedDate: yesterday };
-            });
-            // Reset each habit; if it wasn't completed, break streak
-            const updatedHabits = saved.habits.map((h) => ({
-              ...h,
-              streak: h.completedCount >= h.targetCount ? h.streak : 0,
-              completedCount: 0,
-            }));
-            const next = { ...saved, habits: updatedHabits, challenges: updatedChallenges, lastResetDate: today };
-            setStore(next);
-            AsyncStorage.setItem(KEY, JSON.stringify(next));
-          } else {
-            setStore(saved);
-          }
+          const parsed: Store = JSON.parse(raw);
+          const reset = applyDailyReset(parsed);
+          setStore(reset);
+          if (reset !== parsed) AsyncStorage.setItem(KEY, JSON.stringify(reset));
         } catch {
           setStore(defaultStore());
         }
       }
       setLoading(false);
-    });
+
+      // ── Phase 2: Supabase (background) ──────────────────────────────────
+      try {
+        setSyncing(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const remote = await fetchRemoteStore(user.id);
+        if (!remote) return;
+
+        // Remote is source of truth; apply daily reset then update
+        const reset = applyDailyReset(remote);
+        setStore(reset);
+        AsyncStorage.setItem(KEY, JSON.stringify(reset));
+      } catch {
+        // Network unavailable — cache is sufficient
+      } finally {
+        setSyncing(false);
+      }
+    };
+
+    init();
   }, []);
 
+  // Persist to AsyncStorage on every store change; push to Supabase in background
   useEffect(() => {
-    if (!loading) {
-      if (saveRef.current) {
-        AsyncStorage.setItem(KEY, JSON.stringify(store));
-      } else {
-        saveRef.current = true;
-      }
-    }
+    if (loading) return;
+    if (!saveRef.current) { saveRef.current = true; return; }
+
+    AsyncStorage.setItem(KEY, JSON.stringify(store));
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      upsertUserState(user.id, store.hasOnboarded, store.lastResetDate).catch(() => {});
+    });
   }, [store, loading]);
 
+  // React to auth events: populate on sign-in, clear on sign-out
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        try {
+          setSyncing(true);
+          const remote = await fetchRemoteStore(session.user.id);
+          if (remote) {
+            const reset = applyDailyReset(remote);
+            setStore(reset);
+            AsyncStorage.setItem(KEY, JSON.stringify(reset));
+          }
+        } catch {} finally {
+          setSyncing(false);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setStore(defaultStore());
+        AsyncStorage.removeItem(KEY);
+        saveRef.current = false;
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   const addHabit = useCallback((h: Omit<Habit, 'id' | 'completedCount' | 'streak' | 'createdAt'>) => {
-    setStore((prev) => ({
-      ...prev,
-      habits: [...prev.habits, { ...h, id: Date.now().toString(), completedCount: 0, streak: 0, createdAt: Date.now() }],
-    }));
+    const newHabit: Habit = { ...h, id: Date.now().toString(), completedCount: 0, streak: 0, createdAt: Date.now() };
+    setStore((prev) => ({ ...prev, habits: [...prev.habits, newHabit] }));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) upsertHabit(newHabit, user.id).catch(() => {});
+    });
   }, []);
 
   const deleteHabit = useCallback((id: string) => {
     setStore((prev) => ({ ...prev, habits: prev.habits.filter((h) => h.id !== id) }));
+    removeHabit(id).catch(() => {});
   }, []);
 
   const incrementHabit = useCallback((id: string): 'incremented' | 'completed' | 'already_done' => {
     let result: 'incremented' | 'completed' | 'already_done' = 'incremented';
+    let updatedHabit: Habit | null = null;
+
     setStore((prev) => ({
       ...prev,
       habits: prev.habits.map((h) => {
         if (h.id !== id) return h;
         if (h.completedCount >= h.targetCount) { result = 'already_done'; return h; }
         const next = h.completedCount + 1;
-        if (next >= h.targetCount) { result = 'completed'; }
-        return { ...h, completedCount: next, streak: next >= h.targetCount ? h.streak + 1 : h.streak };
+        if (next >= h.targetCount) result = 'completed';
+        updatedHabit = { ...h, completedCount: next, streak: next >= h.targetCount ? h.streak + 1 : h.streak };
+        return updatedHabit;
       }),
     }));
+
+    if (updatedHabit) {
+      const habit = updatedHabit;
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) upsertHabit(habit, user.id).catch(() => {});
+      });
+    }
+
     return result;
   }, []);
 
@@ -153,6 +219,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }): Reac
         daysCompleted: 0,
         lastCheckedDate: todayStr(),
       };
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) upsertChallenge(c, user.id).catch(() => {});
+      });
       return { ...prev, challenges: [...prev.challenges, c] };
     });
   }, []);
@@ -175,7 +244,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }): Reac
         const { PRESET_CHALLENGES } = require('../constants/theme');
         const preset = PRESET_CHALLENGES.find((p: { id: string }) => p.id === challengePresetId);
         if (preset) {
-          challenges = [...challenges, {
+          const c: ActiveChallenge = {
             id: (Date.now() + 1).toString(),
             presetId: preset.id,
             title: preset.title,
@@ -186,9 +255,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }): Reac
             startedAt: Date.now(),
             daysCompleted: 0,
             lastCheckedDate: todayStr(),
-          }];
+          };
+          challenges = [...challenges, c];
+          supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) upsertChallenge(c, user.id).catch(() => {});
+          });
         }
       }
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          upsertHabit(habit, user.id).catch(() => {});
+          upsertUserState(user.id, true, todayStr()).catch(() => {});
+        }
+      });
       return { ...prev, habits: [habit], challenges, hasOnboarded: true };
     });
   }, []);
@@ -197,7 +276,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }): Reac
     return store.habits.filter((h) => h.completedCount >= h.targetCount).length;
   }, [store.habits]);
 
-  const value = { ...store, loading, addHabit, deleteHabit, incrementHabit, joinChallenge, completeOnboarding, getCompletedToday };
+  const value = { ...store, loading, syncing, addHabit, deleteHabit, incrementHabit, joinChallenge, completeOnboarding, getCompletedToday };
   return React.createElement(Ctx.Provider, { value }, children);
 }
 
