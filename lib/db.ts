@@ -31,11 +31,6 @@ type DbChallenge = {
   last_checked_date: string;
 };
 
-type DbUserState = {
-  user_id: string;
-  last_reset_date: string;
-  has_onboarded: boolean;
-};
 
 // ─── mapping helpers ───────────────────────────────────────────────────────
 
@@ -171,4 +166,44 @@ export async function upsertUserState(
   await supabase
     .from('user_state')
     .upsert({ user_id: userId, has_onboarded: hasOnboarded, last_reset_date: lastResetDate });
+}
+
+// ─── AI insights ───────────────────────────────────────────────────────────
+
+export type AiInsight = {
+  id: string;
+  type: 'coaching' | 'weekly_summary' | 'monthly_summary';
+  content: string;
+  model: string;
+  created_at: string;
+};
+
+/** Fetch the most recent insight of a given type for the current user. */
+export async function fetchLatestInsight(type: AiInsight['type']): Promise<AiInsight | null> {
+  const { data, error } = await supabase
+    .from('ai_insights')
+    .select('id, type, content, model, created_at')
+    .eq('type', type)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return null;
+  return data as AiInsight | null;
+}
+
+/** Invoke the coach-insight edge function. */
+export async function generateCoachInsight(): Promise<{ insight?: string; error?: string; cooldown?: boolean }> {
+  const { data, error } = await supabase.functions.invoke('coach-insight', { method: 'POST' });
+  if (error) return { error: error.message };
+  return data as { insight?: string; error?: string; cooldown?: boolean };
+}
+
+/** Invoke the weekly-summary edge function. */
+export async function generateWeeklySummary(period: 'weekly' | 'monthly' = 'weekly'): Promise<{ summary?: string; error?: string; cooldown?: boolean }> {
+  const { data, error } = await supabase.functions.invoke('weekly-summary', {
+    method: 'POST',
+    body: { period },
+  });
+  if (error) return { error: error.message };
+  return data as { summary?: string; error?: string; cooldown?: boolean };
 }

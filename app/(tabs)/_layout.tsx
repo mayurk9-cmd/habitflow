@@ -6,6 +6,7 @@ function TabIcon({ label, active }: { label: string; active: boolean }) {
   const icons: Record<string, [string, string]> = {
     index:      ['🏠', '🏡'],
     challenges: ['🎯', '🏆'],
+    coach:      ['🤖', '✨'],
     stats:      ['📊', '📈'],
   };
   const [inactive, act] = icons[label] ?? ['●', '●'];
@@ -42,6 +43,13 @@ export default function TabsLayout() {
         options={{
           title: 'Challenges',
           tabBarIcon: ({ focused }) => <TabIcon label="challenges" active={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="coach"
+        options={{
+          title: 'AI Coach',
+          tabBarIcon: ({ focused }) => <TabIcon label="coach" active={focused} />,
         }}
       />
       <Tabs.Screen
